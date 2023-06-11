@@ -10,7 +10,7 @@ import java.util.*;
 
 public class Minhash {
 
-  public double calculateJaccardSimilarity(String fileA, String fileB) {
+  public double jaccard(String fileA, String fileB) {
     ArrayList<String> file1Words  = readFile(fileA);
     ArrayList<String> file2Words = readFile(fileB);
     HashSet<Integer> file1Shingles = new HashSet<>();
