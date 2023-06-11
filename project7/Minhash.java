@@ -1,66 +1,61 @@
 package project7;
 
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class Minhash {
-  private static final int NUM_HASH_FUNCTIONS = 10000000;  // Number of hash functions (permutations)
-  private static final int MIN_SHINGLE_LENGTH = 100000;  // Minimum length of shingles
-
-  private static Set<Integer> generateShingles(String file) throws NoSuchAlgorithmException {
-    Set<Integer> shingles = new HashSet<>();
-    int fileLength = file.length();
-
-    for (int i = 0; i <= fileLength - MIN_SHINGLE_LENGTH; i++) {
-        String shingle = file.substring(i, i + MIN_SHINGLE_LENGTH);
-        int shingleHash = getSHA1Hash(shingle);
-        shingles.add(shingleHash);
-    }
-
-    return shingles;
-}
-
-private static int[][] generateMinhashMatrix(int numHashFunctions, Set<Integer> shinglesFile1, Set<Integer> shinglesFile2) {
-    int[][] minhashMatrix = new int[numHashFunctions][2];
-    Random random = new Random();
-
-    for (int i = 0; i < numHashFunctions; i++) {
-        int a = random.nextInt();
-        int b = random.nextInt();
-        minhashMatrix[i] = new int[] { a, b };
-    }
-
-    return minhashMatrix;
-}
-
-private static int countMatchingMinhashes(int[][] minhashMatrix) {
-    int numMatches = 0;
-
-    for (int i = 0; i < NUM_HASH_FUNCTIONS; i++) {
-        int hash1 = minhashMatrix[i][0];
-        int hash2 = minhashMatrix[i][1];
-        if (hash1 == hash2) {
-            numMatches++;
-        }
-    }
-
-    return numMatches;
-}
-
-private static int getSHA1Hash(String input) throws NoSuchAlgorithmException {
+  public static int getSHA1Hash(String input) throws NoSuchAlgorithmException {
     MessageDigest md = MessageDigest.getInstance("SHA-1");
     byte[] hashedBytes = md.digest(input.getBytes());
 
+    // Convert the byte array to an integer
     int hashValue = 0;
     for (int i = 0; i < 4; i++) {
         hashValue |= (hashedBytes[i] & 0xff) << (24 - 8 * i);
     }
 
     return hashValue;
+}
+
+
+public static int[] generateMinhashSignature(String fileContent, int numHashes) throws NoSuchAlgorithmException {
+  Set<String> shingles = new HashSet<>();
+  int[] minhashSignature = new int[numHashes];
+
+  // Generate shingles from file content
+  String[] words = fileContent.split("\\s+");
+  for (int i = 0; i < words.length - 2; i++) {
+      String shingle = words[i] + " " + words[i + 1];
+      shingles.add(shingle);
+  }
+
+  // Generate hash functions
+  Random random = new Random();
+  int[][] hashFunctions = new int[numHashes][2];
+  for (int i = 0; i < numHashes; i++) {
+      int a = random.nextInt(100) + 1;
+      int b = random.nextInt(100) + 1;
+      hashFunctions[i] = new int[] { a, b };
+  }
+
+  // Generate Minhash signature
+  for (int i = 0; i < numHashes; i++) {
+      int minhash = Integer.MAX_VALUE;
+      for (String shingle : shingles) {
+          int shingleHash = getSHA1Hash(shingle);
+          int hash = (hashFunctions[i][0] * shingleHash + hashFunctions[i][1]) % shingles.size();
+          minhash = Math.min(minhash, hash);
+      }
+      minhashSignature[i] = minhash;
+  }
+
+  return minhashSignature;
 }
   public  double jaccard(String fA, String fB) throws NoSuchAlgorithmException {
     /**
@@ -69,18 +64,26 @@ private static int getSHA1Hash(String input) throws NoSuchAlgorithmException {
      */
 
     // Your code goes here 
-    Set<Integer> shinglesFile1 = generateShingles(fA);
-    Set<Integer> shinglesFile2 = generateShingles(fB);
+    int numHashes = 10000;
+    
 
-    int[][] minhashMatrix = generateMinhashMatrix(NUM_HASH_FUNCTIONS, shinglesFile1, shinglesFile2);
+    int[] minhashSigFile1 = generateMinhashSignature(fA, numHashes);
+    int[] minhashSigFile2 = generateMinhashSignature(fB, numHashes);
 
-    int numMatches = countMatchingMinhashes(minhashMatrix);
-    double jaccardSimilarity = (double) numMatches / NUM_HASH_FUNCTIONS;
+        // Calculate Jaccard similarity
+        int intersection = 0;
+        for (int i = 0; i < numHashes; i++) {
+            if (minhashSigFile1[i] == minhashSigFile2[i]) {
+                intersection++;
+            }
+        }
+        int union = numHashes;
 
-    return jaccardSimilarity;
+        double jaccardSimilarity = (double) intersection / union;
+
+        return jaccardSimilarity;
     
   }
 }
-
 
 
