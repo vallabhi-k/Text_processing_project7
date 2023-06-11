@@ -66,6 +66,8 @@ public class Minhash {
 
     // Your code goes here 
     int numHashes = 10;
+    
+
     int[] minhashSigFile1 = generateMinhashSignature(fA, numHashes);
     int[] minhashSigFile2 = generateMinhashSignature(fB, numHashes);
 
@@ -76,9 +78,7 @@ public class Minhash {
             intersection++;
         }
     }
-    int union = numHashes;
-
-    double jaccardSimilarity = (double) intersection / union;
+    double jaccardSimilarity = (double) intersection / numHashes;
 
     return jaccardSimilarity;
     
