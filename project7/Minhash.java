@@ -8,7 +8,7 @@ import java.util.Random;
 import java.util.Set;
 
 public class Minhash {
-  private static final int NUM_HASH_FUNCTIONS = 100;  // Number of hash functions (permutations)
+  private static final int NUM_HASH_FUNCTIONS = 1000;  // Number of hash functions (permutations)
   private static final int MIN_SHINGLE_LENGTH = 10;  // Minimum length of shingles
 
   private static Set<Integer> generateShingles(String file) throws NoSuchAlgorithmException {
