@@ -64,7 +64,7 @@ public static int[] generateMinhashSignature(String fileContent, int numHashes) 
      */
 
     // Your code goes here 
-    int numHashes = 10000;
+    int numHashes = 10000000;
     
 
     int[] minhashSigFile1 = generateMinhashSignature(fA, numHashes);
