@@ -3,87 +3,113 @@ package project7;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
+import java.util.*;
 
 public class Minhash {
-  public static int getSHA1Hash(String input) throws NoSuchAlgorithmException {
-    MessageDigest md = MessageDigest.getInstance("SHA-1");
-    byte[] hashedBytes = md.digest(input.getBytes());
 
-    // Convert the byte array to an integer
-    int hashValue = 0;
-    for (int i = 0; i < 4; i++) {
-        hashValue |= (hashedBytes[i] & 0xff) << (24 - 8 * i);
+  public double jaccard(String fA, String fB) {
+    ArrayList<String> file1_words  = readFile(fA);
+    ArrayList<String> file2_words = readFile(fB);
+    HashSet<Integer> file1_shingles = new HashSet<>();
+    HashSet<Integer> file2_shingles = new HashSet<>();
+    
+    for (int i = 0; i < file1_words.size(); i++)
+    {
+      String shingle = file1_words.get(i);
+      file1_shingles.add(shingle.hashCode());
     }
 
-    return hashValue;
-}
+    for (int i = 0; i < file2_words.size(); i++)
+    {
+      String shingle = file2_words.get(i);
+      file2_shingles.add(shingle.hashCode());
+    }
 
+    int total_shingles = file1_shingles.size() + file2_shingles.size();
 
-public static int[] generateMinhashSignature(String fileContent, int numHashes) throws NoSuchAlgorithmException {
-  Set<String> shingles = new HashSet<>();
-  int[] minhashSignature = new int[numHashes];
+    int maxShingleID = (int)Math.pow(2,32)-1;
+    long nextPrime = 4294967311L;
 
-  // Generate shingles from file content
-  String[] words = fileContent.split("\\s+");
-  for (int i = 0; i < words.length - 2; i++) {
-      String shingle = words[i] + " " + words[i + 1];
-      shingles.add(shingle);
-  }
+    int num_hashes = 99;
 
-  // Generate hash functions
-  Random random = new Random();
-  int[][] hashFunctions = new int[numHashes][2];
-  for (int i = 0; i < numHashes; i++) {
-      int a = random.nextInt(100) + 1;
-      int b = random.nextInt(100) + 1;
-      hashFunctions[i] = new int[] { a, b };
-  }
+    List<Integer> a = pickRandomCoeff(num_hashes, maxShingleID);
+    List<Integer> b = pickRandomCoeff(num_hashes, maxShingleID);
+        
+    List<Long> sig_a = new ArrayList<>();
+    List<Long> sig_b = new ArrayList<>();
 
-  // Generate Minhash signature
-  for (int i = 0; i < numHashes; i++) {
-      int minhash = Integer.MAX_VALUE;
-      for (String shingle : shingles) {
-          int shingleHash = getSHA1Hash(shingle);
-          int hash = (hashFunctions[i][0] * shingleHash + hashFunctions[i][1]) % shingles.size();
-          minhash = Math.min(minhash, hash);
+    List<Integer> file1_shingles_arr = new ArrayList<Integer>(file1_shingles);
+    List<Integer> file2_shingles_arr = new ArrayList<Integer>(file2_shingles);
+    
+        
+    for (int i = 0; i < num_hashes; i++) {
+      long minHash = nextPrime + 1;
+      for (int j = 0; j < file1_shingles_arr.size(); j++) {
+          long hash = (long)((long) (a.get(i) * file1_shingles_arr.get(j) + b.get(i)) % nextPrime);
+          if (hash < minHash) {
+              minHash = hash;
+          }
       }
-      minhashSignature[i] = minhash;
-  }
+      sig_a.add(minHash);
+    }
 
-  return minhashSignature;
-}
-  public  double jaccard(String fA, String fB) throws NoSuchAlgorithmException {
-    /**
-     * fA: Name of first file
-     * fB: Name of second file
-     */
-
-    // Your code goes here 
-    int numHashes = 10000000;
-    
-
-    int[] minhashSigFile1 = generateMinhashSignature(fA, numHashes);
-    int[] minhashSigFile2 = generateMinhashSignature(fB, numHashes);
-
-        // Calculate Jaccard similarity
-        int intersection = 0;
-        for (int i = 0; i < numHashes; i++) {
-            if (minhashSigFile1[i] == minhashSigFile2[i]) {
-                intersection++;
-            }
+  for (int i = 0; i < num_hashes; i++) {
+    long minHash = nextPrime + 1;
+    for (int j = 0; j < file2_shingles_arr.size(); j++) {
+        long hash = (long)((long) (a.get(i) * file2_shingles_arr.get(j) + b.get(i)) % nextPrime);
+        if (hash < minHash) {
+            minHash = hash;
         }
-        int union = numHashes;
-
-        double jaccardSimilarity = (double) intersection / union;
-
-        return jaccardSimilarity;
-    
+    }
+    sig_b.add(minHash);
   }
+
+
+  int count = 0;
+  for (int i = 0; i < num_hashes; i++)
+  {
+    if (sig_a.get(i).equals(sig_b.get(i)))
+    {
+      count++;
+    }
+  }
+
+  float sim = (float)(count) / (float)(num_hashes);
+  return sim;
+
+
+  //  return 0.0;
+  }
+
+  public static List<Integer> pickRandomCoeff(int k, int maxShingleID) {
+    Set<Integer> randList = new HashSet<>();
+    Random rand = new Random();
+    
+    while (randList.size() < k) {
+        int randIndex = rand.nextInt(maxShingleID);
+        randList.add(randIndex);
+    }
+    
+    return new ArrayList<>(randList);
+  }
+
+  public static ArrayList<String> readFile(String fileName){
+    ArrayList<String> file_words = new ArrayList<>();
+    try {
+      File myObj = new File(fileName);
+      Scanner myReader = new Scanner(myObj);
+      while (myReader.hasNextLine()) {
+        file_words.add(myReader.nextLine());        
+      }
+      myReader.close();
+    } catch (FileNotFoundException e) {
+      System.out.println("An error occurred.");
+      e.printStackTrace();
+    }
+    return file_words;
+  }
+
 }
-
-
